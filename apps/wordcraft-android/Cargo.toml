@@ -1,0 +1,54 @@
+[package]
+name = "wordcraft-android"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "WordCraft on Android (eframe NativeActivity, cargo-apk)"
+
+# Not `[lints] workspace = true`: Cargo rejects overriding one workspace lint,
+# and `android_main` needs `#[unsafe(no_mangle)]`, which `unsafe_code = "forbid"`
+# rejects. The other workspace lint levels are copied here. The crate root still
+# denies panic, unwrap, expect, todo, unimplemented and unreachable.
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"
+
+[lib]
+name = "wordcraft_android"
+# `cdylib` is what Android loads. `lib` lets a host `cargo check` type-check the crate.
+crate-type = ["cdylib", "lib"]
+
+# Host builds do not link these. Keeping them Android-only stops
+# `android-native-activity` from being unified into the desktop eframe build.
+[target.'cfg(target_os = "android")'.dependencies]
+wordcraft-doc = { workspace = true }
+wordcraft-engine = { workspace = true }
+wordcraft-ui-egui = { workspace = true }
+log = { workspace = true }
+# Same winit as eframe 0.36.2 / Cargo.lock. Default features stay off so this
+# edge does not enable X11 or Wayland; eframe already selects `rwh_06`.
+winit = { version = "0.30.13", default-features = false }
+# `default_fonts` and `wgpu` match the desktop app. `android-native-activity`
+# is the backend eframe 0.36.2's `hello_android` example packages with cargo-apk.
+# Do not also enable `android-game-activity` or `accesskit`: eframe 0.36.2
+# rejects `accesskit` together with `android-native-activity`, and enabling both
+# activity backends makes `android-activity` fail to compile.
+eframe = { workspace = true, features = [
+    "default_fonts",
+    "wgpu",
+    "android-native-activity",
+] }
+
+# Read by cargo-apk. Same keys and SDK levels as eframe 0.36.2 `examples/hello_android`.
+[package.metadata.android]
+build_targets = ["armv7-linux-androideabi", "aarch64-linux-android"]
+
+[package.metadata.android.sdk]
+min_sdk_version = 23
+target_sdk_version = 35
